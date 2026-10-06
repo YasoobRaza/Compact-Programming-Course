@@ -2,58 +2,64 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-print("Pandas Tasks")
+print("--- Week 3: Pandas Tasks ---")
 
-# 1. Read CSV file and transfer it into DataFrame
-df = pd.read_csv('Cars93_missing.csv')
-print("\nTask 1: DataFrame loaded")
+# 1. Read CSV file and verify structure
+csv_path = 'Cars93_missing.csv'
+try:
+    df = pd.read_csv(csv_path, encoding='utf-8')
+    print("1. CSV read successfully.")
+    print(df.head())
+    df.info()
+except FileNotFoundError:
+    print(f"Error: {csv_path} not found.")
+    raise
 
-# 2. Transfer object Series into index column of the dataframe
+# 2. Convert column to index
 if 'Model' in df.columns:
+    df['Model'] = df['Model'].astype(str)
     df.set_index('Model', inplace=True)
-print("Task 2: Index set to Model")
+    print("\n2. 'Model' column set as index.")
 
-# 3. Change the data in the column of DataFrame according to some condition
-# Condition: if Price < 10, set to 10
-if 'Price' in df.columns:
-    df.loc[df['Price'] < 10, 'Price'] = 10
-print("Task 3: Price updated")
+# 3. Conditional data change
+df['Price'] = pd.to_numeric(df['Price'], errors='coerce').astype(float)
+df.loc[df['Price'] < 10, 'Price'] = 10
+print("\n3. Conditional update applied to 'Price'.")
 
-# 4. Get names of the DataFrame columns and sum of losted values DF
-columns = df.columns
-lost_values = df.isnull().sum().sum()
-print("\nTask 4:")
-print("Columns:", list(columns))
-print("Sum of lost values:", lost_values)
+# 4. Column names and missing values
+column_names = df.columns.tolist()
+missing_values_per_col = df.isna().sum()
+total_lost_values = df.isna().sum().sum()
 
-# 5. Ex-change 2 columns, use function for it. Sort coulumn by name
-def exchange_columns(dataframe, col1, col2):
-    if col1 not in dataframe.columns or col2 not in dataframe.columns:
-        return dataframe
-    cols = list(dataframe.columns)
-    idx1 = cols.index(col1)
-    idx2 = cols.index(col2)
-    cols[idx1], cols[idx2] = cols[idx2], cols[idx1]
-    return dataframe[cols]
+print("\n4. Column names:")
+print(column_names)
+print("\nMissing values per column:")
+print(missing_values_per_col[missing_values_per_col > 0])
+print(f"Total missing values: {total_lost_values}")
+
+# 5. Swap two columns and sort columns alphabetically
+def exchange_columns(data, col1, col2):
+    if col1 in data.columns and col2 in data.columns:
+        data[[col1, col2]] = data[[col2, col1]]
+    return data
 
 df = exchange_columns(df, 'Manufacturer', 'Type')
-df = df.reindex(sorted(df.columns), axis=1)
-print("\nTask 5: Columns exchanged and sorted")
+df = df.sort_index(axis=1)
+print("\n5. Columns swapped and sorted:")
+print(df.columns.tolist()[:6], "...")
 
-# 6. Delete upper and lower 5% in object DataFrame
-if 'Price' in df.columns:
-    q_low = df['Price'].quantile(0.05)
-    q_high = df['Price'].quantile(0.95)
-    df = df[(df['Price'] >= q_low) & (df['Price'] <= q_high)]
-print("Task 6: 5% upper and lower deleted")
+# 6. Delete top and bottom 5%
+q_low, q_high = df['Price'].quantile([0.05, 0.95])
+initial_rows = len(df)
+df = df[(df['Price'] >= q_low) & (df['Price'] <= q_high)]
+print(f"\n6. Trimmed outliers. Rows: {initial_rows} -> {len(df)}")
 
-# 7. Replay (Apply) missed values in the Column with average values.
-if 'Price' in df.columns:
-    mean_price = df['Price'].mean()
-    df['Price'] = df['Price'].fillna(mean_price)
-print("Task 7: Missed values in Price replaced with average")
+# 7. Replace missing values with column average
+price_mean = df['Price'].mean()
+df['Price'] = df['Price'].fillna(price_mean)
+print(f"\n7. Missing 'Price' filled with mean: {price_mean:.2f}")
 
-# 8. Create two data frames using the two Dicts, Merge two data frames, and append the second data frame as a new column to the first data frame.
+# 8. Merge DataFrames and append column
 dict1 = {'ID': [1, 2, 3], 'Value1': [10, 20, 30]}
 dict2 = {'ID': [2, 3, 4], 'Value2': [40, 50, 60]}
 
@@ -61,19 +67,27 @@ df1 = pd.DataFrame(dict1)
 df2 = pd.DataFrame(dict2)
 
 df_merged = pd.merge(df1, df2, on='ID', how='inner')
-df1['NewColumn'] = pd.Series([100, 200, 300]) # append a new column
-print("\nTask 8: DataFrames merged")
+df1['NewColumn'] = df2['Value2']
+
+print("\n8. Merged DataFrames:")
 print(df_merged)
+print("Appended column to df1:")
+print(df1)
 
-# 9. For any column create histogram
-if 'Price' in df.columns:
-    df['Price'].hist()
-    plt.title("Price Histogram")
-    plt.savefig('histogram.png')
-    print("\nTask 9: Histogram saved")
+# 9. Histogram
+plt.figure(figsize=(7, 4))
+plt.hist(df['Price'].dropna(), bins=15, color='skyblue', edgecolor='black')
+plt.title("Price Distribution")
+plt.xlabel("Price")
+plt.ylabel("Frequency")
+plt.grid(axis='y', alpha=0.75)
+plt.savefig('histogram.png')
+plt.close()
+print("\n9. Histogram saved as 'histogram.png'.")
 
-# 10. Create Correlation Matrix for any column
-df_numeric = df.select_dtypes(include=[np.number])
-corr_matrix = df_numeric.corr()
-print("\nTask 10: Correlation matrix")
-print(corr_matrix)
+# 10. Correlation matrix
+numeric_df = df.select_dtypes(include=[np.number])
+corr_matrix = numeric_df.corr(method='pearson')
+
+print("\n10. Pearson Correlation Matrix:")
+print(corr_matrix.iloc[:4, :4])

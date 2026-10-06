@@ -67,7 +67,6 @@ print("Equal:", equal)
 
 # 10. Random vector with shape (100,2) representing coordinates, find point by point distances
 Z = np.random.random((100, 2))
-# distance between consecutive points to keep it simple
 distances = np.sqrt(np.sum((Z[1:] - Z[:-1])**2, axis=1))
 print("\nTask 10:")
 print(distances[:5])
